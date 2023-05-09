@@ -1,46 +1,58 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Местоположение пользователя и аптеки на карте</title>
   <script src="https://api-maps.yandex.ru/2.1/?apikey=8f4cce24-f8c0-4079-a92f-070a44db7fcf&lang=ru_RU" type="text/javascript"></script>
   <script type="text/javascript">
+    ymaps.ready(function() {
+      ymaps.geolocation.get({
+        provider: 'auto',
+        mapStateAutoApply: true
+      })
+      .then(function(result) {
+        var myMap = new ymaps.Map("map", {
+          center: result.geoObjects.position,
+          zoom: 100
+        });
 
-// Создание карты с центром в местоположении пользователя
-ymaps.ready(function() {
-  // Получение местоположения пользователя
-  ymaps.geolocation.get({
-      provider: 'auto',
-      mapStateAutoApply: true
-  })
-  .then(function(result) {
-    // Создание карты и установка начального местоположения
-    var myMap = new ymaps.Map("map", {
-        center: result.geoObjects.position,
-        zoom: 17
-    });
-    
-    // Создание метки с местоположением пользователя
-    var myPlacemark = new ymaps.Placemark(result.geoObjects.position, {
-        hintContent: 'Вы здесь'
-    }, {
-        preset: 'islands#geolocationIcon',
-        iconColor: '#0095b6'
-    });
-    
-    // Добавление метки на карту
-    myMap.geoObjects.add(myPlacemark);
-  })
-    var searchControl = new ymaps.control.SearchControl({
-      options: {
-        provider: 'yandex#search'
-      }
-    });
+        var myPlacemark = new ymaps.Placemark(result.geoObjects.position, {
+          hintContent: 'Вы здесь'
+        }, {
+          preset: 'islands#geolocationIcon',
+          iconColor: '#0095b6'
+        });
 
-    myMap.controls.add(searchControl);
-    searchControl.search('Аптека');
-  });
-  
+        myMap.geoObjects.add(myPlacemark);
 
+        var searchControl = new ymaps.control.SearchControl({
+          options: {
+            provider: 'yandex#search'
+          }
+        });
+
+        myMap.controls.add(searchControl);
+
+        searchControl.search('Аптека');
+
+        searchControl.events.add('resultshow', function(e) {
+          var results = searchControl.getResultsArray();
+
+          results.forEach(function(result) {
+            if (result.properties.get('Type') === 'Геообъект') {
+              var pharmacyPlacemark = new ymaps.Placemark(result.geometry.getCoordinates(), {
+                hintContent: result.properties.get('name')
+              }, {
+                preset: 'islands#blueMedicalIcon'
+              });
+
+              myMap.geoObjects.add(pharmacyPlacemark);
+            }
+          });
+        });
+      })
+      .catch(function(error) {
+        console.log('Ошибка при определении местоположения');
+      });
+    });
   </script>
 </head>
 <body>
